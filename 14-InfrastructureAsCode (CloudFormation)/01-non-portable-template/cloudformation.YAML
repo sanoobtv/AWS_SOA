@@ -1,0 +1,12 @@
+Resources:
+  s3Bucket:
+    Type: 'AWS::S3::Bucket'
+    Properties: 
+      BucketName: 'ac123catpicks13333337258'
+  myEC2Instance:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      KeyName: 'A4LmacKeyPair'
+      ImageId: 'ami-0c2b8ca1dad447f8a'
+      InstanceType: 't2.micro'
+      
