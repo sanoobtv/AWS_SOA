@@ -1,0 +1,76 @@
+{
+"AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "A sample EC2 template which is portable",
+    "Metadata": {
+
+    },
+    "Parameters": {
+        "AMIID":{
+            "Type": "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>",
+            "Description" : "AMI for EC2",
+            "Default" : "/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2"
+        },
+        "instanceSize" : {
+            "Type" :"String",
+            "Description" : "Choose a size",
+            "Default" : "t2.micro"
+        },
+        "keyname" : {
+        "Type":"AWS::EC2::KeyPair::KeyName"    ,
+        "Description":  "Pick a Key"
+        }
+    },
+    "Mappings": {
+
+    },
+    "Conditions": {
+
+    },
+    "Resources": {
+        
+        "s3Bucket": {
+            "Type": "AWS::S3::Bucket",
+            "Properties": {
+                "AccessControl": "Private",           
+                "Tags" : [{"Key":"Name" , "Value" :"CFNbucket"}]
+            }
+        },
+
+        
+        "CFNEC2": {
+            "Type": "AWS::EC2::Instance",
+            "Properties": {
+                "KeyName": !Ref "keyname",
+                "ImageId": { "Ref" : "AMIID" },
+                "InstanceType": {"Ref" : "instanceSize" },
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "EC2"
+                    }
+                ]
+                
+        }
+                }
+        
+
+    },
+    "Outputs": {
+        
+        "IP" : {
+          "Value" : { "Fn::GetAtt" : [ "CFNEC2", "PublicIp" ]}
+          
+        },
+
+        
+        "BucketName" : {
+          "Value" : 
+          { "Ref": "s3Bucket" }
+          
+          
+        }
+        
+        
+
+    }
+}

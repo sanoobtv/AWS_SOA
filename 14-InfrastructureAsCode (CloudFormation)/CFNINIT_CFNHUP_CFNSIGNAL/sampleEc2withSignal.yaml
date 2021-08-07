@@ -1,0 +1,84 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: AN EC2 instance and S3 bucket with CFN Signal 
+
+Parameters: 
+  LatestAmiId:
+    Description: "Selecting the AMI for EC2 instances"
+    Type : 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
+    Default: '/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2'
+
+  Message:
+    Description: "What goes in the HTML Page"
+    Default: "Nothing was Provided"
+    Type: "String"  
+
+  EC2Key:
+    Description: "Choose a key for EC2"
+    Type: AWS::EC2::KeyPair::KeyName
+  
+  InstanceType:
+    Description : "Pick an Instance Type"
+    Type : String
+    AllowedValues:
+      - t2.micro
+      - t3.micro
+    Default: t2.micro    
+Resources: 
+  EC2SG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: "SSH and HTTPS given as name"
+      GroupDescription: "SSH and HTTP given as description"
+      SecurityGroupIngress:
+        - Description: 'Allow SSH In'
+          IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: '0.0.0.0/0'
+        - Description: "Allow HTTP In"
+          IpProtocol: tcp
+          FromPort: '80'
+          ToPort: '80'
+          CidrIp: '0.0.0.0/0'
+      Tags:
+        - Key: "Name"
+          Value: "EC2_SG_SSH_HTTP"
+  S3Bucket:
+    Type: AWS::S3::Bucket
+    Properties: 
+     AccessControl: Private 
+     Tags:
+      - Key: Name
+        Value: aRandomBucket
+  myEC2Instance:
+    Type: AWS::EC2::Instance
+    CreationPolicy:
+      ResourceSignal:
+        Timeout: PT15M
+    Properties:
+      KeyName: !Ref EC2Key
+      DisableApiTermination: false 
+      ImageId: !Ref LatestAmiId
+      InstanceType: !Ref InstanceType
+      Monitoring: false
+      SecurityGroupIds:
+        - !Ref EC2SG
+      Tags:
+        - Key: Name
+          Value: EC2InstanceName  
+      UserData: 
+        Fn::Base64: !Sub |
+          #!/bin/bash -ex
+          yum -y update
+          yum -y upgrade
+          #sleep 100
+          yum install -y httpd
+          systemctl enable httpd
+          systemctl start httpd
+          echo "<html><head><title>Website Heading</title></head><body><h2>Website Body Heading</h2><h1><center> ${Message}</center></h1></body></html>" > /var/www/html/index.html
+          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackId} --resource myEC2Instance --region ${AWS::Region}
+          
+Outputs:
+  EC2IP: 
+    Description : HTTP Link
+    Value: !Join  [ '',["http://",!GetAtt myEC2Instance.PublicIp]]
